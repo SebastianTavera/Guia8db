@@ -1,21 +1,53 @@
+"""
+Actividad 3 - Llamada a procedimientos almacenados desde Python (Guía 8)
+
+Se invocan con cursor.callproc(nombre, argumentos). callproc devuelve una
+tupla con los argumentos; en las posiciones de los parámetros OUT queda el
+valor asignado por el procedimiento. Los argumentos viajan como parámetros,
+no concatenados, por lo que también están protegidos contra inyección SQL.
+
+Requiere haber ejecutado "Procedimientos almacenados.sql".
+Las credenciales se leen de variables de entorno (ver .env.example).
+"""
+import os
+from pathlib import Path
+
+try:  # lee el archivo .env de la raíz del proyecto (si python-dotenv está instalado)
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+except ImportError:
+    pass
+
 import mysql.connector
 from mysql.connector import Error
+
+DB_CONFIG = {
+    "host": os.getenv("DB_HOST", "127.0.0.1"),
+    "port": int(os.getenv("DB_PORT", "3306")),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", ""),
+    "database": os.getenv("DB_NAME", "Guia_8"),
+}
 
 
 def obtener_conexion():
     """Establece conexión con la base de datos Guia_8."""
-    return mysql.connector.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="",          # Ajusta si configuraste contraseña
-        database="Guia_8"
-    )
+    return mysql.connector.connect(**DB_CONFIG)
+
+
+def cerrar(cursor, conexion):
+    """Cierra cursor y conexión si fueron abiertos (evita fugas de recursos)."""
+    if cursor is not None:
+        cursor.close()
+    if conexion is not None and conexion.is_connected():
+        conexion.close()
 
 
 def invocar_registrar_matricula():
     """Llama a sp_registrar_matricula(IN p_IdEstudiante, IN p_IdGrupo, OUT p_Mensaje)."""
     print("\n--- 1. REGISTRAR MATRÍCULA (sp_registrar_matricula) ---")
+    conexion = cursor = None
     try:
         id_est = int(input("Ingrese ID del Estudiante (ej. 1030281186 o 999): ").strip())
         id_grupo = int(input("Ingrese ID del Grupo/Curso (ej. 1, 3, 5): ").strip())
@@ -36,15 +68,13 @@ def invocar_registrar_matricula():
     except Error as err:
         print(f"[ERROR SQL] Fallo al ejecutar sp_registrar_matricula: {err}")
     finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals() and conexion.is_connected():
-            conexion.close()
+        cerrar(cursor, conexion)
 
 
 def invocar_calcular_promedio():
     """Llama a sp_calcular_promedio(IN p_IdEstudiante, OUT p_Promedio, OUT p_Clasificacion)."""
     print("\n--- 2. CALCULAR PROMEDIO Y CLASIFICACIÓN (sp_calcular_promedio) ---")
+    conexion = cursor = None
     try:
         id_est = int(input("Ingrese ID del Estudiante (ej. 1031422990, 1000000001 o 999): ").strip())
 
@@ -68,15 +98,13 @@ def invocar_calcular_promedio():
     except Error as err:
         print(f"[ERROR SQL] Fallo al ejecutar sp_calcular_promedio: {err}")
     finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals() and conexion.is_connected():
-            conexion.close()
+        cerrar(cursor, conexion)
 
 
 def invocar_actualizar_estado_curso():
     """Llama a sp_actualizar_estado_curso(IN p_IdGrupo, OUT p_Mensaje)."""
     print("\n--- 3. ACTUALIZAR ESTADO DE CURSO CON CURSOR (sp_actualizar_estado_curso) ---")
+    conexion = cursor = None
     try:
         id_grupo = int(input("Ingrese ID del Grupo/Curso a evaluar (ej. 1, 2, 4): ").strip())
 
@@ -95,10 +123,7 @@ def invocar_actualizar_estado_curso():
     except Error as err:
         print(f"[ERROR SQL] Fallo al ejecutar sp_actualizar_estado_curso: {err}")
     finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals() and conexion.is_connected():
-            conexion.close()
+        cerrar(cursor, conexion)
 
 
 def menu_procedimientos():

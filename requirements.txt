@@ -1,1 +1,7 @@
 mysql-connector-python==26.10.0
+# Actividad 4 - MongoDB Atlas + tienda en tiempo real
+pymongo==4.20.0
+Flask==3.1.3
+python-dotenv==1.2.4
+# Actividad 5 - consola de administración (tablas y colores en la terminal)
+rich==15.0.0

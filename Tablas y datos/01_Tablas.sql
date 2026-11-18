@@ -6,6 +6,12 @@ create database if not exists Guia_8 character set utf8mb4 collate utf8mb4_unico
 USE Guia_8;
 
 -- borra en orden inverso por las FK
+drop table if exists ReservaLaboratorio; -- Actividad 5
+
+drop table if exists Pago; -- Actividad 5
+
+drop table if exists Usuario; -- cuentas de la Actividad 5 (dependen de Estudiante y Profesor)
+
 drop table if exists AuditoriaMatricula;
 
 drop table if exists Matricula;

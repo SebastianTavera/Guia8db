@@ -21,15 +21,15 @@ insert into
     Programa
 values (
         1,
-        'Ingenieria',
-        'Ingenieria de software',
+        'Ingeniería',
+        'Ingeniería de software',
         8
     ),
-    (2, 'Salud', 'Enfermeria', 8),
+    (2, 'Salud', 'Enfermería', 8),
     (
         3,
         'Artes',
-        'Cine y television',
+        'Cine y televisión',
         8
     ),
     (
@@ -41,7 +41,7 @@ values (
     (
         5,
         'Ciencias humanas y sociales',
-        'Psicologia',
+        'Psicología',
         8
     );
 
@@ -89,7 +89,7 @@ values (
         'Felipe',
         'Dueñas',
         'Martinez',
-        'andresduenas.fm@academima.umb.edu.co',
+        'andresduenas.fm@academia.umb.edu.co',
         '+57',
         '3178630693',
         '2007-07-19',
@@ -175,19 +175,19 @@ insert into
     Materia
 values (
         201,
-        'Teoria de bases de datos',
+        'Teoría de bases de datos',
         4,
         1
     ),
     (
         202,
-        'Taller de programacion',
+        'Taller de programación',
         3,
         1
     ),
     (
         203,
-        'Probabilidad y estadistica',
+        'Probabilidad y estadística',
         2,
         1
     ),
@@ -197,7 +197,7 @@ values (
         1,
         5
     ),
-    (205, 'Filosofia', 2, 5);
+    (205, 'Filosofía', 2, 5);
 
 insert into
     Grupo
@@ -217,7 +217,7 @@ values (
         202,
         502,
         '2026-2',
-        'Miercoles 2-4 pm',
+        'Miércoles 2-4 pm',
         25
     );
 

@@ -1,31 +1,82 @@
+"""
+Actividad 2 - CRUD completo desde Python (Guía 8)
+
+Todas las operaciones que reciben datos del usuario usan consultas
+parametrizadas (cursor.execute(sql, valores)): el conector envía los datos
+separados del código SQL, lo que previene la inyección SQL.
+
+Las credenciales se leen de variables de entorno (ver .env.example).
+"""
+import os
+from pathlib import Path
+
+try:  # lee el archivo .env de la raíz del proyecto (si python-dotenv está instalado)
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+except ImportError:
+    pass
+from datetime import datetime
+
 import mysql.connector
 from mysql.connector import Error
+
+DB_CONFIG = {
+    "host": os.getenv("DB_HOST", "127.0.0.1"),
+    "port": int(os.getenv("DB_PORT", "3306")),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", ""),
+    "database": os.getenv("DB_NAME", "Guia_8"),
+}
 
 
 def obtener_conexion():
     """Establece y retorna una conexión activa con la base de datos Guia_8."""
-    return mysql.connector.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="",          # Ajusta si configuraste contraseña
-        database="Guia_8"
-    )
+    return mysql.connector.connect(**DB_CONFIG)
+
+
+def cerrar(cursor, conexion):
+    """Cierra cursor y conexión si fueron abiertos (evita fugas de recursos)."""
+    if cursor is not None:
+        cursor.close()
+    if conexion is not None and conexion.is_connected():
+        conexion.close()
+
+
+def pedir_obligatorio(mensaje):
+    """Solicita un dato que no puede quedar vacío."""
+    while True:
+        valor = input(mensaje).strip()
+        if valor:
+            return valor
+        print("  [AVISO] Este campo es obligatorio.")
+
+
+def pedir_fecha(mensaje):
+    """Solicita una fecha válida en formato YYYY-MM-DD."""
+    while True:
+        valor = input(mensaje).strip()
+        try:
+            datetime.strptime(valor, "%Y-%m-%d")
+            return valor
+        except ValueError:
+            print("  [AVISO] Formato inválido. Use YYYY-MM-DD (ej. 2005-03-21).")
 
 
 def insertar_estudiante():
     """CREATE: Inserta un nuevo estudiante usando consulta parametrizada."""
     print("\n--- REGISTRAR NUEVO ESTUDIANTE ---")
+    conexion = cursor = None
     try:
         id_est = int(input("ID Estudiante (Documento): ").strip())
-        p_nombre = input("Primer Nombre: ").strip()
+        p_nombre = pedir_obligatorio("Primer Nombre: ")
         s_nombre = input("Segundo Nombre (Enter si no tiene): ").strip() or None
-        p_apellido = input("Primer Apellido: ").strip()
+        p_apellido = pedir_obligatorio("Primer Apellido: ")
         s_apellido = input("Segundo Apellido (Enter si no tiene): ").strip() or None
-        correo = input("Correo Institucional: ").strip()
-        prefijo = input("Prefijo Teléfono (ej. +57): ").strip() or "+57"
-        telefono = input("Teléfono: ").strip()
-        fecha_nac = input("Fecha de Nacimiento (YYYY-MM-DD): ").strip()
+        correo = pedir_obligatorio("Correo Institucional: ")
+        prefijo = input("Prefijo Teléfono (Enter = +57): ").strip() or "+57"
+        telefono = pedir_obligatorio("Teléfono: ")
+        fecha_nac = pedir_fecha("Fecha de Nacimiento (YYYY-MM-DD): ")
         direccion = input("Dirección (Enter si no aplica): ").strip() or None
 
         conexion = obtener_conexion()
@@ -52,12 +103,10 @@ def insertar_estudiante():
     except ValueError:
         print("[ERROR] El ID del estudiante debe ser un número entero.")
     except Error as err:
+        # Ej.: ID duplicado (1062 Duplicate entry)
         print(f"[ERROR SQL] No se pudo insertar el estudiante: {err}")
     finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals() and conexion.is_connected():
-            conexion.close()
+        cerrar(cursor, conexion)
 
 
 def consultar_estudiantes():
@@ -67,79 +116,79 @@ def consultar_estudiantes():
     print("2. Buscar estudiante por ID")
     opcion = input("Seleccione una opción: ").strip()
 
+    if opcion not in ("1", "2"):
+        print("[AVISO] Opción no válida.")
+        return
+
+    conexion = cursor = None
     try:
+        sql = """
+            SELECT IdEstudiante,
+                   CONCAT_WS(' ', PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido) AS NombreCompleto,
+                   CorreoEstudiante,
+                   CONCAT(PrefijoTelefono, ' ', Telefono) AS TelefonoCompleto,
+                   FechaNacimiento
+            FROM Estudiante
+        """
+        if opcion == "1":
+            # Sin datos del usuario: no requiere parámetros
+            sql += " ORDER BY PrimerApellido"
+            parametros = ()
+        else:
+            id_buscar = int(input("Ingrese el ID del estudiante a buscar: ").strip())
+            sql += " WHERE IdEstudiante = %s"
+            parametros = (id_buscar,)
+
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-
-        if opcion == "1":
-            sql = """
-                SELECT IdEstudiante,
-                       CONCAT_WS(' ', PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido) AS NombreCompleto,
-                       CorreoEstudiante,
-                       CONCAT(PrefijoTelefono, ' ', Telefono) AS TelefonoCompleto,
-                       FechaNacimiento
-                FROM Estudiante
-                ORDER BY PrimerApellido
-            """
-            cursor.execute(sql)
-            filas = cursor.fetchall()
-
-        elif opcion == "2":
-            id_buscar = int(input("Ingrese el ID del estudiante a buscar: ").strip())
-            sql = """
-                SELECT IdEstudiante,
-                       CONCAT_WS(' ', PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido) AS NombreCompleto,
-                       CorreoEstudiante,
-                       CONCAT(PrefijoTelefono, ' ', Telefono) AS TelefonoCompleto,
-                       FechaNacimiento
-                FROM Estudiante
-                WHERE IdEstudiante = %s
-            """
-            cursor.execute(sql, (id_buscar,))
-            filas = cursor.fetchall()
-        else:
-            print("[AVISO] Opción no válida.")
-            return
+        cursor.execute(sql, parametros)
+        filas = cursor.fetchall()
 
         if not filas:
             print("[INFO] No se encontraron registros.")
             return
 
-        print("\n" + "=" * 95)
-        print(f"{'ID':<12} | {'NOMBRE COMPLETO':<30} | {'CORREO':<30} | {'TELÉFONO'}")
-        print("-" * 95)
-        for id_est, nombre, correo, tel, _ in filas:
-            print(f"{id_est:<12} | {nombre:<30} | {correo:<30} | {tel}")
-        print("=" * 95)
+        print("\n" + "=" * 110)
+        print(f"{'ID':<12} | {'NOMBRE COMPLETO':<30} | {'CORREO':<36} | {'TELÉFONO':<15} | {'NACIMIENTO'}")
+        print("-" * 110)
+        for id_est, nombre, correo, tel, fecha in filas:
+            print(f"{id_est:<12} | {nombre:<30} | {correo:<36} | {tel:<15} | {fecha}")
+        print("=" * 110)
+        print(f"Registros encontrados: {len(filas)}")
 
     except ValueError:
         print("[ERROR] El ID debe ser numérico.")
     except Error as err:
         print(f"[ERROR SQL] Error al consultar: {err}")
     finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals() and conexion.is_connected():
-            conexion.close()
+        cerrar(cursor, conexion)
 
 
 def actualizar_estudiante():
-    """UPDATE: Actualiza correo, teléfono y dirección mediante consulta parametrizada."""
+    """UPDATE: Actualiza correo, teléfono y dirección mediante consulta parametrizada.
+    Si el usuario deja un campo vacío, se conserva el valor actual."""
     print("\n--- ACTUALIZAR DATOS DE ESTUDIANTE ---")
+    print("(Deje un campo vacío para conservar el valor actual)")
+    conexion = cursor = None
     try:
         id_est = int(input("Ingrese el ID del estudiante a modificar: ").strip())
         nuevo_correo = input("Nuevo correo institucional: ").strip()
         nuevo_tel = input("Nuevo teléfono: ").strip()
-        nueva_dir = input("Nueva dirección: ").strip() or None
+        nueva_dir = input("Nueva dirección: ").strip()
+
+        if not (nuevo_correo or nuevo_tel or nueva_dir):
+            print("[INFO] No se ingresó ningún cambio.")
+            return
 
         conexion = obtener_conexion()
         cursor = conexion.cursor()
 
+        # NULLIF convierte '' en NULL y COALESCE conserva el valor actual
         sql = """
             UPDATE Estudiante
-            SET CorreoEstudiante = %s,
-                Telefono = %s,
-                Direccion = %s
+            SET CorreoEstudiante = COALESCE(NULLIF(%s, ''), CorreoEstudiante),
+                Telefono         = COALESCE(NULLIF(%s, ''), Telefono),
+                Direccion        = COALESCE(NULLIF(%s, ''), Direccion)
             WHERE IdEstudiante = %s
         """
         valores = (nuevo_correo, nuevo_tel, nueva_dir, id_est)
@@ -150,22 +199,20 @@ def actualizar_estudiante():
         if cursor.rowcount > 0:
             print(f"[OK] Registro con ID {id_est} actualizado exitosamente.")
         else:
-            print(f"[AVISO] No existe ningún estudiante con el ID {id_est}.")
+            print(f"[AVISO] No existe el estudiante {id_est} o los datos eran iguales.")
 
     except ValueError:
         print("[ERROR] El ID debe ser un número entero.")
     except Error as err:
         print(f"[ERROR SQL] No se pudo actualizar el registro: {err}")
     finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals() and conexion.is_connected():
-            conexion.close()
+        cerrar(cursor, conexion)
 
 
 def eliminar_estudiante():
     """DELETE: Elimina un estudiante por ID usando consulta parametrizada."""
     print("\n--- ELIMINAR ESTUDIANTE ---")
+    conexion = cursor = None
     try:
         id_est = int(input("Ingrese el ID del estudiante a eliminar: ").strip())
         confirmar = input(f"¿Está seguro de eliminar al estudiante {id_est}? (s/n): ").strip().lower()
@@ -192,10 +239,7 @@ def eliminar_estudiante():
         # Captura si falla por restricción de llave foránea (ej. tiene matrículas activas)
         print(f"[ERROR SQL] No se pudo eliminar (verifique si tiene matrículas asociadas): {err}")
     finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals() and conexion.is_connected():
-            conexion.close()
+        cerrar(cursor, conexion)
 
 
 def menu_principal():

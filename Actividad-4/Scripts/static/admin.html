@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Monocromo · Administración</title>
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..750&display=swap">
+  <link rel="stylesheet" href="/static/css/estilos.css">
+  <script type="module" src="/static/js/admin.js"></script>
+</head>
+<body>
+  <div class="envoltura">
+    <header class="barra glass">
+      <a class="marca" href="/admin"><span class="marca-logo" aria-hidden="true"></span>Monocromo <small>Admin</small></a>
+      <span class="estado" id="estado" data-modo="iniciando"><span class="estado-punto"></span><span>Conectando…</span></span>
+      <a class="boton-vidrio" href="/" target="_blank" rel="noopener">Ver tienda
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+      </a>
+      <button class="boton-texto" id="salir" type="button">Salir</button>
+    </header>
+
+    <div class="admin-cuerpo">
+      <aside class="lista glass" aria-label="Productos">
+        <div class="lista-cabecera">
+          <h2>Productos<small id="conteo"></small></h2>
+          <button class="boton-solido" id="nuevo" type="button">+ Nuevo</button>
+        </div>
+        <div class="lista-items" id="items"></div>
+      </aside>
+      <main class="editor glass" id="editor" aria-live="polite"></main>
+    </div>
+  </div>
+
+  <div class="acceso" id="acceso" hidden>
+    <form class="glass glass-fuerte" id="form-acceso" autocomplete="off">
+      <span class="marca-logo" aria-hidden="true"></span>
+      <h1>Panel de administración</h1>
+      <p>Ingresa la clave definida en <code>ADMIN_PASSWORD</code>.</p>
+      <label class="campo" style="text-align:left">Clave
+        <input type="password" id="clave" required autocomplete="current-password">
+      </label>
+      <div class="error-texto" id="error-acceso" role="alert"></div>
+      <button class="boton-solido" type="submit">Entrar</button>
+    </form>
+  </div>
+</body>
+</html>

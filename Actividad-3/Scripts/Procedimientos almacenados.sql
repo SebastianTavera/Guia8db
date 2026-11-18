@@ -54,8 +54,7 @@ DEALLOCATE PREPARE stmt2;
 -- 2. Procedimiento 1: sp_registrar_matricula
 DROP PROCEDURE IF EXISTS sp_registrar_matricula;
 
-DELIMITER /
-/
+DELIMITER //
 
 CREATE PROCEDURE sp_registrar_matricula(
     IN  p_IdEstudiante INT,
@@ -105,17 +104,14 @@ BEGIN
             SET p_Mensaje = CONCAT('EXITO: matricula ', v_NuevoId, ' registrada para el estudiante ', p_IdEstudiante, ' en el curso ', p_IdGrupo);
         END IF;
     END IF;
-END
-/
-/
+END //
 
-DELIMITER;
+DELIMITER ;
 
 -- 3. Procedimiento 2: sp_calcular_promedio
 DROP PROCEDURE IF EXISTS sp_calcular_promedio;
 
-DELIMITER /
-/
+DELIMITER //
 
 CREATE PROCEDURE sp_calcular_promedio(
     IN  p_IdEstudiante  INT,
@@ -158,17 +154,14 @@ BEGIN
 
         COMMIT;
     END IF;
-END
-/
-/
+END //
 
-DELIMITER;
+DELIMITER ;
 
 -- 4. Procedimiento 3: sp_actualizar_estado_curso
 DROP PROCEDURE IF EXISTS sp_actualizar_estado_curso;
 
-DELIMITER /
-/
+DELIMITER //
 
 CREATE PROCEDURE sp_actualizar_estado_curso(
     IN  p_IdGrupo  INT,
@@ -232,8 +225,6 @@ BEGIN
                                v_Aprobados, ' aprobadas, ', v_Reprobados, ' reprobadas, ',
                                v_Pendientes, ' pendientes)');
     END IF;
-END
-/
-/
+END //
 
-DELIMITER;
+DELIMITER ;
