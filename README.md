@@ -15,8 +15,157 @@ administrador, MySQL + MongoDB).
 
 ---
 
+## Inicio rápido: ejecutar y consultar
+
+> ¿Primera vez en este equipo? Antes haga la instalación (secciones 1 a 6). Lo de aquí abajo es
+> lo que se hace **cada vez** que se va a usar el proyecto.
+
+### Paso 0 · Encender las bases de datos y activar el entorno
+
+Fedora:
+
+```bash
+sudo systemctl start mariadb mongod
+cd ~/Downloads/Guia8DB-main && source .venv/bin/activate
+```
+
+Arch Linux:
+
+```bash
+sudo systemctl start mariadb mongodb
+cd ~/Downloads/Guia8DB-main && source .venv/bin/activate
+```
+
+Windows (PowerShell):
+
+```powershell
+Get-Service MongoDB, *maria*, *mysql* | Start-Service
+cd $HOME\Downloads\Guia8DB-main; .venv\Scripts\Activate.ps1
+```
+
+Todos los comandos siguientes se escriben desde la carpeta `Guia8DB-main` con el entorno
+activado (la terminal muestra `(.venv)` al inicio).
+
+### Ejecutar cada actividad
+
+| Actividad | Comando | Qué debe pasar |
+|---|---|---|
+| **1** · Conexión básica | `cd Actividad-1/Scripts && python "Conexion basica.py"; cd ../..` | Lista los estudiantes y cierra la conexión |
+| **2** · CRUD con menú | `cd Actividad-2/Scripts && python Crud.py; cd ../..` | Menú: insertar, consultar, actualizar, eliminar (5 = salir) |
+| **3** · Procedimientos almacenados | `cd "Actividad-3/Scripts" && python "Procedimientos almacenados.py"; cd ../..` | Menú con los 3 procedimientos (4 = salir) |
+| **4** · CRUD con MongoDB | `cd Actividad-4/Scripts && python crud_consola.py; cd ../..` | `insert_one`, `find`, `update_one` y `delete_one` con `[OK]` |
+| **4** · Tienda web | `cd Actividad-4/Scripts && python app.py` | Tienda <http://127.0.0.1:5000/> · Admin <http://127.0.0.1:5000/admin> (clave `Admin2026`) |
+| **5** · Campus web | `cd Actividad-5/Scripts && python app.py` | <http://127.0.0.1:5050/> para estudiantes, profesores y público |
+| **5** · Consola del administrador | `cd Actividad-5/Scripts && python admin.py` | La primera vez pide crear el administrador |
+
+En Windows cambie `/` por `\` en las rutas y `&&` por `;`.
+
+Las webs (`app.py`) se dejan abiertas en su terminal y se detienen con **Ctrl+C**. La tienda
+(5000) y Campus (5050) pueden estar abiertas al mismo tiempo; la consola de la Actividad 5 se abre
+en **otra terminal**.
+
+Datos de prueba para la web de Campus (**Activar cuenta**):
+
+| Rol | Documento / código | Correo institucional |
+|---|---|---|
+| Estudiante | `1031422990` | `juangamez.mn@academia.umb.edu.co` |
+| Estudiante | `1030281186` | `andresduenas.fm@academia.umb.edu.co` |
+| Profesor | `501` | `john.hernandezm@docentes.umb.edu.co` |
+
+### Consultas de prueba · MySQL/MariaDB (Actividades 1, 2, 3 y 5)
+
+Abrir la consola de la base `Guia_8` (en Windows use `mysql` en lugar de `mariadb`):
+
+```bash
+mariadb -u guia8 -pGuia8-2026 Guia_8
+```
+
+Se abre el prompt `MariaDB [Guia_8]>`; pegue las consultas y salga con `exit`.
+
+```sql
+-- Estudiantes con su número de materias
+SELECT e.IdEstudiante, CONCAT(e.PrimerNombre,' ',e.PrimerApellido) AS Estudiante, COUNT(m.IdMatricula) AS Materias
+FROM Estudiante e LEFT JOIN Matricula m ON m.IdEstudiante = e.IdEstudiante
+GROUP BY e.IdEstudiante;
+
+-- Materias, notas y profesor de un estudiante
+SELECT ma.NombreMateria, g.Horario, CONCAT(p.PrimerNombreProfesor,' ',p.PrimerApellidoProfesor) AS Profesor, m.NotaFinal, m.EstadoCurso
+FROM Matricula m JOIN Grupo g ON g.IdGrupo = m.IdGrupo JOIN Materia ma ON ma.IdMateria = g.IdMateria
+LEFT JOIN Profesor p ON p.IdProfesor = g.IdProfesor
+WHERE m.IdEstudiante = 1031422990;
+
+-- Cupos de cada curso del periodo 2026-2
+SELECT g.IdGrupo, ma.NombreMateria, g.Cupo, COUNT(m.IdMatricula) AS Inscritos
+FROM Grupo g JOIN Materia ma ON ma.IdMateria = g.IdMateria LEFT JOIN Matricula m ON m.IdGrupo = g.IdGrupo
+WHERE g.Periodo = '2026-2' GROUP BY g.IdGrupo ORDER BY g.IdGrupo;
+
+-- Materias por programa
+SELECT p.NombrePrograma, COUNT(*) AS Materias FROM Materia m JOIN Programa p ON p.IdPrograma = m.IdPrograma GROUP BY p.IdPrograma;
+```
+
+Procedimientos almacenados (Actividad 3):
+
+```sql
+-- Promedio y clasificación de un estudiante (solo lectura)
+CALL sp_calcular_promedio(1031422990, @promedio, @clasificacion);
+SELECT @promedio, @clasificacion;
+
+-- Matrícula con un estudiante que NO existe: debe devolver un mensaje de ERROR
+CALL sp_registrar_matricula(999, 1, @mensaje);
+SELECT @mensaje;
+
+-- Ver los procedimientos creados
+SHOW PROCEDURE STATUS WHERE Db = 'Guia_8';
+```
+
+Tablas nuevas de la Actividad 5:
+
+```sql
+-- Cuentas de la web: la contraseña está cifrada, nunca en texto plano
+SELECT IdUsuario, Nombre, Correo, Rol, Activo, LEFT(ClaveHash, 25) AS ClaveCifrada FROM Usuario;
+
+-- Pagos en línea (simulados) y reservas de laboratorio
+SELECT Referencia, IdEstudiante, Periodo, Valor, Metodo, Estado FROM Pago;
+SELECT Laboratorio, Fecha, Franja, Motivo FROM ReservaLaboratorio ORDER BY Fecha;
+```
+
+### Consultas de prueba · MongoDB (Actividades 4 y 5)
+
+Abrir la consola (`exit` para salir):
+
+```bash
+mongosh tienda_ropa
+```
+
+```javascript
+// Actividad 4 · tienda
+db.productos.countDocuments()                                                        // 22 prendas
+db.productos.find({}, { _id: 0, nombre: 1, precio: 1, descuento: 1 })                 // todas
+db.productos.find({ genero: "Mujer" }, { _id: 0, nombre: 1, precio: 1 }).sort({ precio: -1 })
+db.productos.find({ descuento: { $gt: 0 } }, { _id: 0, nombre: 1, descuento: 1 })      // en oferta
+db.productos.aggregate([{ $group: { _id: "$categoria", prendas: { $sum: 1 }, precioPromedio: { $avg: "$precio" } } }])
+db.usuarios.find({}, { _id: 0, nombre: 1, email: 1, clave_hash: 1 })                   // contraseña cifrada
+db.pedidos.find({}, { _id: 0, cliente: 1, total: 1, estado: 1 }).sort({ creado: -1 })
+```
+
+Para la Actividad 5 cambie de base con `use campus`:
+
+```javascript
+// Actividad 5 · Campus
+db.bitacora.find({}, { _id: 0, accion: 1, "actor.nombre": 1, "actor.origen": 1, fecha: 1 }).sort({ fecha: -1 }).limit(10)
+db.bitacora.aggregate([{ $group: { _id: "$accion", veces: { $sum: 1 } } }, { $sort: { veces: -1 } }])
+db.preferencias.find()
+db.publicaciones.find({}, { _id: 0, titulo: 1, categoria: 1 })
+db.monitorias.find({}, { _id: 0, materia: 1, cupo: 1, inscritos: 1 })
+```
+
+Más consultas, con explicación, en el [README de la Actividad 4](Actividad-4/README.md#5-consultas-de-prueba-en-mongodb).
+
+---
+
 ## Contenido
 
+- [Inicio rápido: ejecutar y consultar](#inicio-rápido-ejecutar-y-consultar)
 1. [Qué hay que instalar](#1-qué-hay-que-instalar)
 2. [Instalación en Fedora](#2-instalación-en-fedora)
 3. [Instalación en Arch Linux](#3-instalación-en-arch-linux)
